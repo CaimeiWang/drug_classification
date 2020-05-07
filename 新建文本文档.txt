@@ -1,0 +1,180 @@
+import time
+time1 = time.time()
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from keras.utils import to_categorical
+from keras import models,layers
+from keras import optimizers
+import keras
+from scipy import interp
+from sklearn.preprocessing import label_binarize
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix,roc_curve,auc
+from sklearn.utils.multiclass import unique_labels
+train_score = []
+validation_score = []
+test_score = []
+label_data = []
+data = []
+label_list = []
+da = pd.read_csv(r"文件名",header=None)
+dl = pd.read_csv(r"标签名",header=None)
+
+data = np.array(da)
+label_data = np.array(dl)
+
+x_train,x_test,y_train,y_test = train_test_split(data,label_data,test_size=0.25)
+
+for i in range(y_test.shape[0]):
+    for j in range(y_test.shape[1]):
+        label_list.append(y_test[i][j])
+label_list = np.array(label_list)
+
+train_data_x = np.reshape(x_train,(-1,**,**,1))
+test_data_x = np.reshape(x_test,(-1,**,**，1))
+
+train_data_y = to_categorical(y_train)
+test_data_y = to_categorical(y_test)
+
+model = models.Sequential()
+model.add(layers.Conv2D(32,(3,3),activation='relu',input_shape=(**,**,1)))
+model.add(layers.MaxPooling2D(2,2)) # pooling_size = (2,2） stride = 2 注意括号细节
+model.add(layers.BatchNormalization())
+model.add(layers.Conv2D(64,(3,3),activation='relu'))# keral_size = 3,3 stride = 1,1
+model.add(layers.MaxPooling2D(2,2))
+model.add(layers.BatchNormalization())
+
+model.add(layers.Flatten())
+model.add(layers.Dense(32,activation='relu'))
+model.add(layers.Dense(3,activation='softmax'))
+
+print(model.summary())
+# callbacks_list = [
+#         keras.callbacks.ModelCheckpoint(
+#             filepath='E:\PycharmProjects\YHC\三次实验10.13\model weight\The_best_RAW+CNN.h5',
+#             monitor='val_acc',
+#             save_best_only=True,
+#             mode=max,verbose=0
+#         )
+#     ]
+
+model.compile(optimizer=optimizers.rmsprop(lr=0.0001),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+histroy = model.fit(train_data_x,
+                        train_data_y,
+                        batch_size=64,
+                        epochs=60)
+
+test_loss, test_acc = model.evaluate(test_data_x, test_data_y)
+test_score.append(test_acc)
+train_loss, train_acc = model.evaluate(train_data_x, train_data_y)
+train_score.append(train_acc)
+print(test_acc)
+# y_pred_proba = model.predict_proba(test_data_x)
+# np.savetxt('E:\jieguo\CNN_y_pred_proba.csv', y_pred_proba, delimiter=',')
+# y_pred = np.argmax(y_pred_proba,axis=1)
+# np.savetxt('E:\jieguo\CNN_y_pred.csv',y_pred,delimiter=',')
+# fpr = dict()
+# tpr = dict()
+# roc_auc = dict()
+# for i in range(6):
+#     fpr[i],tpr[i],_ = roc_curve(test_data_y[:,i],y_pred_proba[:,i])
+# fpr["micro"], tpr["micro"], _ = roc_curve(test_data_y.ravel(), y_pred_proba.ravel())
+# roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+# np.savetxt('E:\jieguo\CNN_y_pred_fprmicro.csv',fpr["micro"],delimiter=',')
+# np.savetxt('E:\jieguo\CNN_y_pred_tprmicro.csv',tpr["micro"],delimiter=',')
+# all_fpr = np.unique(np.concatenate([fpr[i] for i in range(6)]))
+# mean_tpr = np.zeros_like(all_fpr)
+# for i in range(6):
+#     mean_tpr += interp(all_fpr, fpr[i], tpr[i])
+# mean_tpr /= 6
+#
+# fpr["macro"] = all_fpr
+# tpr["macro"] = mean_tpr
+#
+# np.savetxt('E:\jieguo\CNN_y_pred_fprmacro.csv',fpr["macro"],delimiter=',')
+# np.savetxt('E:\jieguo\CNN_y_pred_tprmacro.csv',tpr["macro"],delimiter=',')
+# roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+#
+# def plot_confusion_matrix(y_true, y_pred, classes,
+#                               normalize=False,
+#                               title=None,
+#                               cmap=plt.cm.Blues):
+#     """
+#         This function prints and plots the confusion matrix.
+#         Normalization can be applied by setting `normalize=True`.
+#     """
+#     if not title:
+#         if normalize:
+#             title = 'Normalized confusion matrix'
+#         else:
+#             title = 'Confusion matrix, without normalization'
+#
+#     # Compute confusion matrix
+#     cm = confusion_matrix(y_true, y_pred)
+#     # Only use the labels that appear in the data
+#     classes = classes[unique_labels(y_true, y_pred)]
+#
+#     if normalize:
+#         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+#         print("Normalized confusion matrix")
+#     else:
+#         print('Confusion matrix, without normalization')
+#
+#     print(cm)
+#
+#     fig, ax = plt.subplots()
+#     im = ax.imshow(cm, interpolation='nearest', cmap=cmap)
+#     # 渐变条
+#     ax.figure.colorbar(im, ax=ax)
+#     # We want to show all ticks...
+#     ax.set(xticks=np.arange(cm.shape[1]),
+#             yticks=np.arange(cm.shape[0]),
+#             # ... and label them with the respective list entries
+#             xticklabels=classes, yticklabels=classes,
+#             title=title,
+#             ylabel='True label',
+#             xlabel='Predicted label')
+#
+#     # Rotate the tick labels and set their alignment.
+#     plt.setp(ax.get_xticklabels(), ha="right",
+#                  rotation_mode="anchor")
+#
+#     # Loop over data dimensions and create text annotations.
+#     fmt = '.2f' if normalize else 'd'
+#
+#     thresh = cm.max() / 2.
+#     for i in range(cm.shape[0]):
+#         for j in range(cm.shape[1]):
+#             ax.text(j, i, format(cm[i, j], fmt),
+#                     ha="center", va="center",
+#                     color="white" if cm[i, j] > thresh else "black")
+#     fig.tight_layout()
+#     return ax
+#
+#
+#     # 保留精度
+# np.set_printoptions(precision=2)
+#
+#     # Plot non-normalized confusion matrix
+# class_names = np.array(['0', '1', '2', '3', '4', '5'])
+# plot_confusion_matrix(label_list.astype('int64'), y_pred, classes=class_names,
+#                         title='Confusion matrix, without normalization')
+#
+#     # Plot normalized confusion matrix
+# plot_confusion_matrix(label_list.astype('int64'), y_pred, classes=class_names, normalize=True,
+#                         title='Normalized confusion matrix')
+# plt.show()
+#
+# print("test:",test_score)
+# print("平均值：",np.mean(test_score))
+# print("validation:",validation_score)
+# print("平均值：",np.mean(validation_score))
+# print("train:",train_score)
+# print("平均值：",np.mean(train_score))
+# model.save(r'E:\PycharmProjects\YHC\三次实验10.13\model weight\raw+CNN.h5')
+# time2 = time.time()
+# print('时间：',str(time2-time1)+"s")
